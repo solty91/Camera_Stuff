@@ -1,0 +1,205 @@
+% Bhavani Morarjee 
+% 29 April 2014 
+% Camera Geometry: Explain camera model, epipolar geometry, camera calibration (caltech) ~ essential matrices.
+
+\documentclass[12pt]{article}
+\usepackage{graphicx}
+\usepackage{amsfonts}
+\usepackage[section]{placeins}
+\usepackage{amsmath}
+
+%From UCT template: (just include in preamble?)
+\usepackage[top = 1in, bottom = 1in, left = 1in, right = 1in]{geometry}
+% Include page formatting here. 
+\parskip = 6mm
+\parindent = 0mm
+
+\begin{document}
+
+\title{Camera Model and Geometry}
+
+\section{Camera Model and Projective Transformation}
+% Pinhole camera model : MVG HZ pg 153
+The objectives in this work are achieved by extensive use of the pinhole camera model and therefore, such a model is justified here. An overview of the projective transformation involved is given and the internal and external attributes of the camera model are also discussed. To conceptualise the camera model, the projective transformation of 3D points in the world to points on a 2D plane must be understood. Doing this for one camera, subsequently allows for transformations \textit{between} cameras to be understood as well. These insights can and will be exploited in calibration exercises as well as modelling procedures.
+
+Illustrated in figure \ref{fig:simtri} is a Euclidean origin in $\mathbb{R}^3$ that coincides with the coordinates of a \textit{camera centre \textbf{C}} (also known as an \textit{optical centre}). Furthermore, the focal length \textit{f} -not shown- determines how far away the image plane is from \textit{\textbf{C}} while the principal axis penetrates the image plane at a principal point \textit{\textbf{p}}. The coordinates of a 3D point in the world space, $(X,Y,Z)^T$, after its projection onto the 2D image plane, is governed by the geometry of similar triangles. This is also depicted in figure \ref{fig:simtri}.
+\begin {figure}
+	\centering
+\includegraphics[width=0.9\textwidth]{similar_triangles.pdf}
+\caption{Side view of a camera looking at the world scene. }
+\label{fig:simtri}
+\end{figure}
+Notationally, this 3D-2D transformation is denoted as:
+\begin{equation}
+(X,Y,Z)^T \mapsto (\textit{f}X/Z,\textit{f}Y/Z)^T
+\end{equation}
+This principle is conceived within a Euclidean space but because camera modelling is a projective application, it is more suitable to represent points as homogeneous coordinates. Homogeneous frames have the advantage of allowing points at infinity to be expressed as finite coordinates, and projective transformations can be conveniently represented as matrices for linear operations. 
+For a pin hole camera in this configuration (concurrent world origin and camera centre), homogeneous coordinates permits the above mapping to be expressed as:
+\begin{equation}
+\label{eq:map}
+\left( \begin{array}{c} X \\ Y \\ Z \\ 1 \\ \end{array} \right) \mapsto \left( \begin{array}{c} \textit{f}X \\ \textit{f}Y \\ Z \\ \end{array}\right)  = 
+\left[ {\begin{array}{cccc}
+f & & & 0 \\
+& f & & 0 \\
+& & 1 & 0\\
+\end{array} }\right] \left( \begin{array}{c} X \\ Y \\ Z \\ 1 \\ \end{array} \right)
+\end{equation}
+A homogeneous representation of the 3D world point has a fourth dimension whose value is one. The resulting image coordinate has a homogeneous representation too (with a third parameter being \textit{Z}). Furthermore, the 3x4 matrix above is the \textit{camera projection matrix} \textbf{P} for the canonical case where the camera origin and world origin are the same. Using this representation of coordinates, it is now simply put that a homogeneous world point \textbf{X} $= \left(X,Y,Z,1\right)^T$ is mapped by a camera onto its image plane with resulting coordinates \textbf{x}. The simplified equation governing this transformation can be written as
+\begin{equation}
+x = PX
+\end{equation}
+Notice that camera matrix \textbf{P} can be represented as follows
+\begin{equation}
+P = diag(f,f,1)[I | 0] \label{cameraP}
+\end{equation}
+Thus far, the principal point's coordinates have not been accounted for. In reality, the coordinates for the image plane's origin is not located at the principal point. Hence, these coordinates $(\textit{p}_x,\textit{p}_y)$ modifies the mapping in equation (\ref{eq:map}) as follows:  
+\begin{equation}
+\left( \begin{array}{c} X \\ Y \\ Z \\ 1 \\ \end{array} \right) \mapsto \left( \begin{array}{c} \textit{f}X + Zp_x \\
+\textit{f}Y  + Zp_y \\
+Z \end{array} \right) = 
+\left[ {\begin{array}{cccc}
+f & & p_x & 0 \\
+& f & p_y & 0 \\
+& & 1 & 0\\
+\end{array} }\right] \left( \begin{array}{c} X \\ Y \\ Z \\ 1 \\ \end{array} \right)
+\end{equation}
+Catering for just the focal length \textit{f} and image center  $(\textit{p}_x,\textit{p}_y)$, results in a matrix that is often denoted as \textit{K}:
+\begin{equation} \label{eq:K}
+K = \left[ {\begin{array}{ccc}
+f & & p_x \\
+& f & p_y \\
+& & 1 \\
+\end{array} }\right] 
+\end{equation}
+For the current canonical set-up, projection from world \textit{to} image points (both expressed as homogeneous coordinates) can be written as:  
+\begin{equation}
+\label{eq:KK}
+x = K[I | 0]X
+\end{equation}
+with \textit{K} modelling the \textit{intrinsic} parameters of the camera. If the camera moves in the world frame (or the object moves), and there is not change in focal length, due to zoom for example, these parameters will not change.
+
+\section*{Intrinsic Parameters}
+In equation (\ref{eq:KK}), matrix $K$ is the \textit{camera calibration matrix} and it models the internal parameters of the camera. The camera's intrinsics may be established through a calibration exercise (see section...). Such parameters are unaffected by the camera's \textbf{pose} or \textbf{position} (\textit{extrinsics)} when either the camera or object moves.  Other intrinsic attributes include scaling (number of row to column pixels), skew (when the 2D coordinate frame on the image plane do not have orthogonal axes) and lens distortion (caused by the imperfections in a manufactured, physical lens). However, the focal length and image plane centre are crucial in modelling $K$. In this work, skew is not considered and knowing the distortion parameters is required only to \textit{undistort} raw images from a camera before any form of processing. 
+Hence the form of $K$ used is that of equation (\ref{eq:K}).
+\section*{Extrinsic Parameters}
+A common scenario is where the world coordinate frame is not concurrent with that of the camera's optical centre. Therefore, between the camera's 3D coordinate system and the world's coordinate system, a transformation exists. This transformation i.e. rotation \textbf{R} and translation \textbf{t}, defines the camera's \textit{extrinsics}. The rotational aspect is what governs the camera's \textbf{pose} relative to the world frame, while the translation aligns the two origins and thus describes the camera's \textbf{position}. This set-up is illustrated in figure \ref{fig:Frames}.
+\begin {figure}
+	\centering
+\includegraphics[width=0.6\textwidth]{world_camera_frame.pdf}
+\caption{Non-concurrent world and camera coordinate systems}
+\label{fig:Frames}
+\end{figure}
+\FloatBarrier
+With X being an inhomogeneous 3-vector from the world's perspective and $X_{cam}$  that of the same point but in the camera's coordinate frame, $X_{cam}$ can be arrived at by denoting $X_{cam} = R(X - C)$. Here \textit{C} is a 3-vector representing the camera's optical centre \textbf{relative to} the world frame, whose origin is at \textbf{O}. Using homogeneous coordinates,
+\begin{equation}
+X_{cam} = \left[ {\begin{array}{cc}
+R & -RC\\
+0 &  1 \\
+\end{array} }\right] \left( \begin{array}{c} X \\ Y \\ Z \\ 1 \\ \end{array} \right) = 
+\left[ {\begin{array}{cc}
+R & -RC\\
+0 &  1 \\
+\end{array} }\right]X
+\end{equation}
+
+Combining both the intrinsic and extrinsic parameters allows a camera model to be realised. The projection between the world coordinate system and the camera frame can now be written as
+\begin{equation}
+x = KR[I|-C]X
+\end{equation} 
+where the pinhole camera model is of the form $P = KR[I|-C] $. In total, this camera matrix has 9 degrees of freedom (DOF):
+\begin{itemize}
+\item 3 for the matrix K i.e. \textit{f,$p_x$,$p_y$}
+\item 3 due to the rotation matrix \textbf{R}
+\item 3 due to translation between world and camera frames i.e. \textbf{C}
+\end{itemize}
+
+%MVG HZ pg 156
+It is therefore common for a camera matrix P to be represented as 
+\begin{equation}
+P = K[R |t]
+\end{equation}
+allowing for a world-to-image transformation to be depicted as $X_{cam} = (RX + t)$ since $t= -RC$.
+
+\section{Epipolar Geometry}
+Having established the basis on how 3D points are projected onto one image plane, we can devise a scenario in which two cameras are present at different locations. With both cameras observing the same scene, the projective geometry that relates the two cameras i.e. epipolar geometry, must also be understood as this knowledge allows for multiple cameras to have their extrinsic parameters arrived at. However, the relationship between the two 2D image points in the two image planes is constrained. To begin understanding the nature of the epipolar geometry, a set-up must first be illustrated. 
+\begin{figure}
+\centering
+\includegraphics[width=0.4 \textwidth]{Epipolar_setup.pdf}
+\caption{Visual scenario to illustrate epipolar geometry.}\label{fig:epipolar}
+\end{figure}
+
+%MENTION THAT THIS IS FROM MVG HZ pg 240
+Depicted in figure \ref{fig:epipolar} are two image planes in the presence of a 3D point \textbf{X} with the baseline being the line connecting two camera centres. (Let the left camera have its centre as \textbf{C} with the right camera having \textbf{C'}). The projection of point \textbf{X} onto the two image planes result in \textbf{x} and \textbf{x'}. Two vectors \textbf{\textit{CX}} and \textbf{\textit{C'X}}, together with this baseline, form an \textit{epipolar plane} \textbf{$\pi$} (not labelled in this figure). (A different plane- with the same baseline- would be present if another 3D point was being examined). Also visible in figure \ref{fig:epipolar} are the intersection locations \textbf{e} and \textbf{e'}, of the baseline with the image planes. These points serve as \textbf{epipoles} which are, in practical terms, the mapping of one camera centre into the other camera's image plane. For an image point \textbf{x}, the epipolar line \textbf{l'} connects points \textbf{e'} and \textbf{x'}. (In simple terms, a point in one image plane maps to a line in the second image plane). The epipolar line can be thought of as a 'capturing' of the line-of-sight that exists between points \textbf{X} and \textbf{x}. From figure \ref{fig:epipolar}, it can be observed that if point \textbf{X} moves long the line of sight between itself and camera \textbf{C}, this would be captured as a 2D movement along the epipolar line \textbf{l'}. However, the location of the image point \textbf{x} would not change for camera \textbf{C}. This leads to the advantage that for a point \textbf{x} in one image plane, the search space for the corresponding point in a second view is narrowed down to a line rather than a full 2D image plane. 
+
+%Also reference MVG-HZ here pg 243.
+\subsection{The Fundamental Matrix}
+A \textbf{Fundamental Matrix} obeys the laws of epipolar geometry and dictates the relationship between points \textbf{x} and \textbf{x'}. More specifically, this matrix needs to encode a projection that takes a point \textbf{x} and maps it onto a line \textbf{l'}. From figure \ref{fig:epipolar}, we are given \textbf{l'} and \textbf{e'} as a consequence of the point \textbf{x}. The linkage between the two image points can be thought of as being transformed via a plane $\pi$. This notion introduces the 2D homographic mapping $H_{\pi}$. Furthermore, mathematical notation of \textbf{l'} may be derived from stating that $ \textbf{l'} = \textbf{e'} \times \textbf{x'}$. (In a homogeneous frame, the cross product of points results in a line). To envision the ideology behind deriving a fundamental matrix, figure \ref{fig:fundamental} is provided.
+\begin{figure}
+\centering
+\includegraphics[width=0.4 \textwidth]{Fundamental_Matrix.pdf}
+\caption{Usinga a plane to transform one image point to another.}\label{fig:fundamental}
+\end{figure}
+\FloatBarrier
+In figure \ref{fig:fundamental}, the plane $\pi$ does not intersect with the image plane. This is sufficient as the critical requirement is that both \textbf{x} and \textbf{x'} back-project to the same 3D point \textbf{X}. Figure \ref{fig:fundamental} also allows us to write
+%REFERENCE MVG HZ!!
+\begin{align}
+x'={} & H_{\pi}x\\
+l'={}&e' \times x' \label{eq:1}
+\end{align}
+Substituting the expression for $x'$ into equation (\ref{eq:1}):
+\begin{align*}
+l' = {}& e'H_{\pi}x\\
+l' ={}& \textbf{F}x
+\end{align*}
+Having mapped a point into a line, the projective operator $F$ can be denoted as:
+\begin{equation}\label{eq:2}
+F = \left[e'\right]_x \times H_{\pi} 
+\end{equation}
+where $\left[e'\right]_x $ is a skew symmetric representation of the epipole $e'$. (This is a matrix representation of the vector $\mathbf{e'}$. To verify: a cross product between $\left[e'\right]_x$ and $e'$ is \textbf{0}).  
+By exploiting the coplanar set-up between the  baseline and vectors \textbf{\textit{C}} and \textbf{\textit{C'}}, the fundamental matrix can be shown to relate pairs of corresponding points as follows:\textbf{REFERENCE MVG}
+\begin{equation}
+\label{eq:finalF}
+x'^TFx = 0
+\end{equation}
+This fundamental matrix \textbf{F} can be sovled for up to scale from either knowing the two camera matrices \textbf{P} and \textbf{P'} \textit{a priori}, or according to equation \ref{eq:finalF}, by sufficient point correspondences in two image frames (to solve the set of simultaneous equations). Given that \textbf{F} is a 3x3 matrix with rank 2, has 8 independent ratios (scale is not vital), and has the quality that $\det(F )= 0$, 7 point-pairs is sufficient to work out the transformation between two frames. %REFERENCE THE RIGHT PAGE MVG HZ.
+The properties of \textbf{F} are listed below
+\begin{itemize}
+\item If $l' = Fx$ then $l = F^{T}x$
+\item $\mathbf{Fe = 0}$ and $\mathbf{F^Te'=0}$
+\item \textbf{F} is a projective map that maps points in one image, to epipolar lines in the second image. \textbf{F} is not full rank and thus not invertible.
+\end{itemize}
+
+\subsection{The Essential Matrix}
+Furthering the idea of the fundamental matrix \textbf{F}, involves introducing the Essential Matrix \textbf{E}. For a known camera \textbf{P} and in the event that the camera intrinsics i.e. matrix $K$ are also established, $x = PX$ becomes $\mathbf{\hat{x}=K^{-1}x }$. In this scenario, $\hat{x}$ represents the normalized image coordinates. To this end, the benefit of \textit{undoing} \textbf{K}, allows for normalized camera matrices to be constructed. 
+
+Now considering normalized cameras $\mathbf{\hat{P} = \left[I|0\right]}$ and $\mathbf{\hat{P'} = \left[R|t\right]}$ as well as normalized coordinates $\hat{x}$ and $\hat{x'}$, the special term for the fundamental matrix here is in fact the essential matrix. Normalised coordinates are in their respective frames (this first camera located at a world origin), and plane $\pi$ is still present between the two images, allowing for the following:
+\begin{align*}
+\hat{x}.(t \times R\hat{x'}) = 0\\
+\hat{x}.(\left[t\right]_x \times R\hat{x'}) = 0\\
+\hat{x'^TEx = 0}
+\end{align*}
+This eventually leads to: (\textbf{REFERENCE MVZ HG})
+%MENTION PAGE 244!!!!!!!!!!!!!!!!
+\begin{equation}
+E = \left[t\right]_xR \label{eq:E}
+\end{equation}
+(In equation (\ref{eq:E}), $\left[t\right]_x$ is a skew symmetric matrix). The difference between the fundamental and essential matrices is that in finding $E$, $K$ must be known. This knowledge leads to a matrix from which the extrinsic parameters may now be extracted. These extrinsics imply that the second camera now has quantifiable a rotation \textbf{R} and translation \textbf{t}, relative to the first camera $\mathbf{\hat{P}}$. Like $F$, $E$ is a homogeneous mapping and is unique only up to scale. 
+
+\textbf{REFERENCE MVG} (Might completely chuch this section in appendix-can instead talk about optimisation Bundle Adjustement used in my work)
+
+$E$ has 5 degrees of freedom (as opposed to 7 like that of the fundamental matrix $F$) and hence 5-point correspondences is sufficient to solve for the parameters of $E$. However, a new and critical constraint is introduced i.e. $E$ must be a 3x3 matrix with 2 equal and non-zero singular values. (The third singular value must be 0). There is also a four-fold ambiguity in breaking down the essential matrix $E$ to ascertain the camera extrinsics. When solving for the rotation and translation, 4 solutions are algebraically plausible with only one being true to the real scenario. A simple check to see which solution is desired requires choosing the set of extrinsics which presents the scene in front of both cameras. For $E = U diag(1,1,0)V^T$ and $P = [I|0]$  the 4 solutions to where the second camera might be are:(\textbf{REFERENCE MVZ HG}).
+\begin{align*}
+P' = {}&\left[UWV^T | +\mathbf{u_3}\right]\\
+P' = {}&\left[UWV^T | -\mathbf{u_3}\right]\\
+P' = {}&\left[UW^TV^T | +\mathbf{u_3}\right]\\
+P' = {}&\left[UW^TV^T | -\mathbf{u_3}\right]
+\end{align*}
+\section{Camera Calibration}
+This process aims to ascertain the camera's intrinsic parameters and arrive at a matrix \textit{K}. Once encoded, these values are fixed. ...
+
+
+
+
+
+
+\end{document}
